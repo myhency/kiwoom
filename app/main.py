@@ -26,6 +26,10 @@ class Main(QAxWidget):
             lines = f.readlines()
             self.bot_id = lines[0].strip()
 
+        with open("./config/account_password.txt") as f:
+            lines = f.readlines()
+            self.account_pass = lines[0].strip()
+
         # self.updater = Updater(token=self.token, use_context=True)
         # self.dispatcher = self.updater.dispatcher
 
@@ -83,7 +87,7 @@ class Main(QAxWidget):
         self.dynamicCall(
             "SetInputValue(QString, QString)",
             "비밀번호",
-            "1050"
+            self.account_pass
         )
         self.dynamicCall(
             "SetInputValue(QString, QString)",

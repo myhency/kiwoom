@@ -3,3 +3,4 @@ __pycache__/
 .idea/
 config/token.txt
 config/botid.txt
+config/account_password.txt
