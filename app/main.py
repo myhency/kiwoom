@@ -1,5 +1,6 @@
 import os
 import sys
+import telegram
 
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
@@ -7,6 +8,8 @@ from config.log_class import *
 from config.kiwoomType import *
 from PyQt5.QtTest import *
 from config.errorCode import *
+from telegram.ext import Updater
+from telegram.ext import CommandHandler
 
 
 class Main(QAxWidget):
@@ -14,6 +17,21 @@ class Main(QAxWidget):
         super().__init__()
         self.realType = RealType()
         self.logging = Logging()
+
+        with open("./config/token.txt") as f:
+            lines = f.readlines()
+            self.token = lines[0].strip()
+
+        with open("./config/botid.txt") as f:
+            lines = f.readlines()
+            self.bot_id = lines[0].strip()
+
+        # self.updater = Updater(token=self.token, use_context=True)
+        # self.dispatcher = self.updater.dispatcher
+
+        self.bot = telegram.Bot(self.token)
+        self.bot.sendMessage(chat_id=self.bot_id, text="Test 입니다")
+
 
         # 요청 스크린 번호
         self.screen_my_info = "2000"  # 계좌 관련한 스크린 번호
@@ -135,23 +153,27 @@ class Main(QAxWidget):
 
             if value == '0':
                 self.logging.logger.debug("장 시작 전")
+                self.bot.sendMessage(chat_id=self.bot_id, text="장 시작 전")
 
             elif value == '3':
                 self.logging.logger.debug("장 시작")
+                self.bot.sendMessage(chat_id=self.bot_id, text="장 시작")
 
             elif value == "2":
                 self.logging.logger.debug("장 종료, 동시호가로 넘어감")
+                self.bot.sendMessage(chat_id=self.bot_id, text="장 종료, 동시호가로 넘어감")
 
             elif value == "4":
                 self.logging.logger.debug("3시30분 장 종료")
+                self.bot.sendMessage(chat_id=self.bot_id, text="3시30분 장 종료")
 
-                for code in self.portfolio_stock_dict.keys():
-                    self.dynamicCall("SetRealRemove(QString, QString)", self.portfolio_stock_dict[code]['스크린번호'], code)
+                # for code in self.portfolio_stock_dict.keys():
+                #     self.dynamicCall("SetRealRemove(QString, QString)", self.portfolio_stock_dict[code]['스크린번호'], code)
 
                 QTest.qWait(5000)
 
-                self.file_delete()
-                self.calculator_fnc()
+                # self.file_delete()
+                # self.calculator_fnc()
 
                 sys.exit()
 

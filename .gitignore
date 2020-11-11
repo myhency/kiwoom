@@ -2,3 +2,4 @@ log/*
 __pycache__/
 .idea/
 config/token.txt
+config/botid.txt
