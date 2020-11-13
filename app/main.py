@@ -9,6 +9,8 @@ from PyQt5.QtTest import *
 from config.errorCode import *
 
 from account.account import *
+from condition.condition import *
+from code.code import *
 from mybot.mybot import *
 
 class Main:
@@ -26,18 +28,12 @@ class Main:
 
         # 로그인 요청용 이벤트루프
         self.login_event_loop = QEventLoop()
-        # 예수금 요청용 이벤트루프
-        self.detail_account_info_event_loop = QEventLoop()
 
         # OCX 방식을 파이썬에 사용할 수 있게 변환해 주는 오브젝트
         self.ocx = QAxWidget("KHOPENAPI.KHOpenAPICtrl.1")
 
         # 키움과 연결하기 위한 시그널 / 슬롯 모음
         self.event_slots()
-        # # 실시간 이벤트 시그널 / 슬롯 연결
-        # self.real_event_slot()
-        # # 조건식 이벤트 시그널 / 슬롯
-        # self.condition_event_slot()
 
         # telegram test message 보내기
         self.myBot.send_message_to_my_bot("Test message")
@@ -45,14 +41,16 @@ class Main:
         # 로그인 요청 시그널 포함
         self.signal_login_commConnect()
 
+        # 계좌번호 받아오기
         self.account = Account(self.ocx)
-
         self.account_number = self.account.get_account_number()
-
         self.logging.logger.debug(self.account_number)
 
-        # # 계좌번호 세팅
-        # self.set_account_number()
+        self.condition = Condition(self.ocx, "도지돌파", self.get_condition_search_result)
+
+        # 코드 정보 받아오기 인스턴스
+        self.code_info = Code(self.ocx)
+
         # # 예수금 세팅
         # self.signal_deposit()
         # # 장시작 종료 실시간 알림
@@ -60,19 +58,19 @@ class Main:
         # # 조건식 로딩 하기
         # self.signal_condition()
 
-
-
-    # def get_ocx_instance(self):
-    #     self.setControl("KHOPENAPI.KHOpenAPICtrl.1")  # 레지스트리에 저장된 api 모듈 불러오기
-    #     self.ocx = self.control()
-
-    def set_account_number(self):
-        # 계좌번호 반환
-        account_list = self.dynamicCall("GetLoginInfo(QString)", "ACCNO")
-        # account_num = account_list.split(';')[:-1]
-        account_num = account_list.split(';')[0]
-
-        self.account_num = account_num
+    def get_condition_search_result(self, code_list):
+        self.logging.logger.info("종목 코드 리스트: %s" % code_list)
+        for code in code_list:
+            code_name = self.code_info.get_master_code_name(code)
+            last_price = self.code_info.get_master_last_price(code)
+            self.logging.logger.info("종목명: %s" % code_name)
+            self.logging.logger.info("전일종가: %s" % last_price)
+            self.logging.logger.info("차트URL: https://kr.tradingview.com/chart/?symbol=KRX%%3A%s" % code)
+            self.myBot.send_message_to_my_channel(
+                "[" + code + "]" + code_name + "\n" +
+                "전일종가 : " + last_price + "\n" +
+                "https://kr.tradingview.com/chart/?symbol=KRX%%3A" + code
+            )
 
     def signal_login_commConnect(self):
         self.ocx.dynamicCall("CommConnect()")  # 로그인 요청 시그널
@@ -119,8 +117,8 @@ class Main:
             "0"
         )
 
-    def signal_condition(self):
-        self.dynamicCall("GetConditionLoad()")
+    # def signal_condition(self):
+    #     self.dynamicCall("GetConditionLoad()")
 
     def login_slot(self, err_code):
         self.logging.logger.debug(errors(err_code)[1])
@@ -155,7 +153,7 @@ class Main:
     def realdata_slot(self, sCode, sRealType, sRealData):
         if sRealType == "장시작시간":
             fid = self.realType.REALTYPE[sRealType]['장운영구분']  # (0:장시작전, 2:장종료전(20분), 3:장시작, 4,8:장종료(30분), 9:장마감)
-            value = self.dynamicCall("GetCommRealData(QString, int)", sCode, fid)
+            value = self.ocx.dynamicCall("GetCommRealData(QString, int)", sCode, fid)
 
             print("value: %s" % value)
 
@@ -188,7 +186,7 @@ class Main:
     def condition_slot(self, lRet, sMsg):
         self.logging.logger.debug("호출 성공 여부 %s, 호출결과 메시지 %s" % (lRet, sMsg))
 
-        condition_name_list = self.dynamicCall("GetConditionNameList()")
+        condition_name_list = self.ocx.dynamicCall("GetConditionNameList()")
         self.logging.logger.debug("HTS의 조건식 이름 가져오기 %s" % condition_name_list)
 
         condition_name_list = condition_name_list.split(";")[:-1]
@@ -201,7 +199,7 @@ class Main:
             self.logging.logger.debug("조건식 분리 번호: %s, 이름: %s" % (index, condition_name))
 
             # 조회요청 + 실시간 조회
-            ok = self.dynamicCall("SendCondition(QString, QString, int, int)", "0156", condition_name, index, 1)
+            ok = self.ocx.dynamicCall("SendCondition(QString, QString, int, int)", "0156", condition_name, index, 1)
 
             self.logging.logger.debug("조회 성공여부 %s" % ok)
 
@@ -242,11 +240,11 @@ class Main:
         self.ocx.OnReceiveRealData.connect(self.realdata_slot)  # 실시간 이벤트 연결
 
     def condition_event_slot(self):
-        self.OnReceiveConditionVer.connect(self.condition_slot)
-        self.OnReceiveTrCondition.connect(self.condition_tr_slot)
-        self.OnReceiveRealCondition.connect(self.condition_real_slot)
+        self.ocx.OnReceiveConditionVer.connect(self.condition_slot)
+        self.ocx.OnReceiveTrCondition.connect(self.condition_tr_slot)
+        self.ocx.OnReceiveRealCondition.connect(self.condition_real_slot)
 
     def stop_screen_cancel(self, sScrNo=None):
         # 스크린번호 연결 끊기
-        self.dynamicCall("DisconnectRealData(QString)", sScrNo)
+        self.ocx.dynamicCall("DisconnectRealData(QString)", sScrNo)
 

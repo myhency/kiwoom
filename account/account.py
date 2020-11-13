@@ -16,7 +16,6 @@ class Account:
     def set_account_number(self):
         # 계좌번호 반환
         account_list = self.ocx.dynamicCall("GetLoginInfo(QString)", "ACCNO")
-        # account_num = account_list.split(';')[:-1]
         account_num = account_list.split(';')[:-1]
 
         self.account_number_list = account_num
