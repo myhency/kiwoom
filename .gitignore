@@ -1,6 +1,5 @@
 log/*
 __pycache__/
 .idea/
-config/token.txt
-config/botid.txt
 config/account_password.txt
+config/app.config.json
