@@ -1,6 +1,8 @@
 import os
 import sys
 
+from datetime import date
+
 from PyQt5.QAxContainer import *
 from PyQt5.QtCore import *
 from config.log_class import *
@@ -39,7 +41,7 @@ class Main:
         self.event_slots()
 
         # telegram test message 보내기
-        self.myBot.send_message_to_my_bot("Test message")
+        self.myBot.send_message_to_my_bot(str(datetime.now().strftime('%Y/%m/%d %H:%M')))
         # 로그인 요청 시그널 포함
         self.signal_login_commConnect()
 
@@ -121,65 +123,26 @@ class Main:
     def trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
         self.logging.logger.debug("trdata_slot")
         if sRQName == "주식기본정보요청":
-            code = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "종목코드"
-            )
-            code_name = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "종목명"
-            )
-            current_price = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "현재가"
-            )
-            ratio_by_yesterday = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "등락율"
-            )
-            begin_price = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "시가"
-            )
-            high_price = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "고가"
-            )
-            low_price = self.ocx.dynamicCall(
-                "GetCommData(QString, QString, int, QString)",
-                sTrCode,
-                sRQName,
-                0,
-                "저가"
-            )
+            code = self.get_comm_data(sTrCode, sRQName, 0, "종목코드")
+            code_name = self.get_comm_data(sTrCode, sRQName, 0, "종목명")
+            current_price = self.get_comm_data(sTrCode, sRQName, 0, "현재가")
+            ratio_by_yesterday = self.get_comm_data(sTrCode, sRQName, 0, "등락율")
+            begin_price = self.get_comm_data(sTrCode, sRQName, 0, "시가")
+            high_price = self.get_comm_data(sTrCode, sRQName, 0, "고가")
+            low_price = self.get_comm_data(sTrCode, sRQName, 0, "저가")
 
-            code = str(code).strip()
-            code_name = code_name.strip()
-            current_price = str(abs(int(current_price))).strip()
-            ratio_by_yesterday = str(ratio_by_yesterday).strip()
+            current_price = str(abs(int(current_price)))
+            begin_price = str(abs(int(begin_price)))
+            high_price = str(abs(int(high_price)))
+            low_price = str(abs(int(low_price)))
 
             self.myBot.send_message_to_my_bot(
                 "[" + code + "]" + code_name + "\n" +
                 "현재가 : " + current_price + "\n" +
                 "등락율 : " + ratio_by_yesterday + "%" + "\n" +
+                "시가 : " + begin_price + "\n" +
+                "고가 : " + high_price + "\n" +
+                "저가 : " + low_price + "\n" +
                 "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
             )
 
@@ -188,6 +151,31 @@ class Main:
             self.stop_screen_cancel(self.screen_code_info)
 
         self.code_event_loop.exit()
+
+    def get_comm_data(self, sTrCode, sRQName, index, name):
+        """
+        GetCommData(
+          BSTR strTrCode,       // TR 이름
+          BSTR strRecordName,   // 레코드이름
+          long nIndex,          // TR반복부
+          BSTR strItemName      // TR에서 얻어오려는 출력항목이름
+        )
+        OnReceiveTRData()이벤트가 호출될때 조회데이터를 얻어오는 함수입니다.
+        이 함수는 반드시 OnReceiveTRData()이벤트가 호출될때 그 안에서 사용해야 합니다.
+        :param sTrCode:
+        :param sRQName:
+        :param index:
+        :param name:
+        :return:
+        """
+        ret = self.ocx.dynamicCall(
+            "GetCommData(QString, QString, int, QString)",
+            sTrCode,
+            sRQName,
+            index,
+            name
+        )
+        return ret.strip()
 
     def signal_login_commConnect(self):
         self.ocx.dynamicCall("CommConnect()")  # 로그인 요청 시그널
