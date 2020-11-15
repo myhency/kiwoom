@@ -68,6 +68,7 @@ class Main:
         )
 
         while True:
+            # TR 수신 여부 : false 일 경우 Realtime 만 알람이 간다.
             if self.config['CONDITION']:
                 break
             if len(self.condition_tr_result) != 0:
@@ -85,9 +86,6 @@ class Main:
                 if self.condition_real_result['type'] == "I":
                     self.get_code_detail(self.condition_real_result['code'])
                     self.condition_real_result = {}
-
-        # 코드 정보 받아오기 인스턴스
-        # self.code_info = Code(self.ocx)
 
     def set_realtime_code(self, code, event):
         self.logging.logger.debug("[set_realtime_code]")
@@ -108,6 +106,7 @@ class Main:
                 }
 
     def set_code_list(self, code_list):
+        # TR 수신 여부 : false 일 경우 Realtime 만 알람이 간다.
         if self.config['CONDITION']:
             return
         else:
