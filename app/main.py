@@ -24,6 +24,9 @@ class Main:
         self.logging = Logging()
         # telegram 인스턴스 설정
         self.myBot = MyBot()
+        # Config 설정
+        with open('./config/app.config.json', 'r') as f:
+            self.config = json.load(f)
 
         # 요청 스크린 번호
         self.screen_my_info = "2000"  # 계좌 관련한 스크린 번호
@@ -52,7 +55,6 @@ class Main:
         # 조건검색 시작하기
         self.condition = Condition(
             self.ocx,
-            # "도지돌파",
             self.set_condition_list,
             self.set_code_list,
             self.set_realtime_code
@@ -66,6 +68,8 @@ class Main:
         )
 
         while True:
+            if self.config['CONDITION']:
+                break
             if len(self.condition_tr_result) != 0:
                 self.logging.logger.debug("condition_tr_result 수신 완료")
                 for code in self.condition_tr_result:
@@ -104,8 +108,11 @@ class Main:
                 }
 
     def set_code_list(self, code_list):
-        self.logging.logger.debug("[set_code_list]")
-        self.condition_tr_result = code_list
+        if self.config['CONDITION']:
+            return
+        else:
+            self.logging.logger.debug("[set_code_list]")
+            self.condition_tr_result = code_list
 
     def get_code_detail(self, code, sPrevNext="0"):
         self.logging.logger.debug("get_code_detail")
@@ -131,10 +138,10 @@ class Main:
             high_price = self.get_comm_data(sTrCode, sRQName, 0, "고가")
             low_price = self.get_comm_data(sTrCode, sRQName, 0, "저가")
 
-            current_price = str(abs(int(current_price)))
-            begin_price = str(abs(int(begin_price)))
-            high_price = str(abs(int(high_price)))
-            low_price = str(abs(int(low_price)))
+            current_price = format(int(str(abs(int(current_price)))), ",")
+            begin_price = format(int(str(abs(int(begin_price)))), ",")
+            high_price = format(int(str(abs(int(high_price)))), ",")
+            low_price = format(int(str(abs(int(low_price)))), ",")
 
             self.myBot.send_message_to_my_bot(
                 "[" + code + "]" + code_name + "\n" +
