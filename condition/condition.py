@@ -93,6 +93,7 @@ class Condition:
             self.set_code_list(codeList)
 
         finally:
+            self.logging.logger.debug("receiveTrCondition finally")
             self.conditionLoop.exit()
 
     def receiveRealCondition(self, code, event, conditionName, conditionIndex):

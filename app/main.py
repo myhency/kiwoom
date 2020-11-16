@@ -69,8 +69,8 @@ class Main:
 
         while True:
             # TR 수신 여부 : false 일 경우 Realtime 만 알람이 간다.
-            if self.config['CONDITION']:
-                break
+            # if self.config['CONDITION']:
+            #     break
             if len(self.condition_tr_result) != 0:
                 self.logging.logger.debug("condition_tr_result 수신 완료")
                 for code in self.condition_tr_result:
@@ -82,10 +82,13 @@ class Main:
 
         while True:
             if bool(self.condition_real_result):
+                self.logging.logger.debug(self.condition_real_result)
                 self.logging.logger.debug("condition_real_result 수신 완료")
                 if self.condition_real_result['type'] == "I":
                     self.get_code_detail(self.condition_real_result['code'])
                     self.condition_real_result = {}
+            else:
+                continue
 
     def set_realtime_code(self, code, event):
         self.logging.logger.debug("[set_realtime_code]")
@@ -107,11 +110,14 @@ class Main:
 
     def set_code_list(self, code_list):
         # TR 수신 여부 : false 일 경우 Realtime 만 알람이 간다.
-        if self.config['CONDITION']:
-            return
-        else:
-            self.logging.logger.debug("[set_code_list]")
-            self.condition_tr_result = code_list
+        # if self.config['CONDITION']:
+        #     return
+        # else:
+        #     self.logging.logger.debug("[set_code_list]")
+        #     self.condition_tr_result = code_list
+
+        self.logging.logger.debug("[set_code_list]")
+        self.condition_tr_result = code_list
 
     def get_code_detail(self, code, sPrevNext="0"):
         self.logging.logger.debug("get_code_detail")
@@ -142,15 +148,26 @@ class Main:
             high_price = format(int(str(abs(int(high_price)))), ",")
             low_price = format(int(str(abs(int(low_price)))), ",")
 
-            self.myBot.send_message_to_my_bot(
-                "[" + code + "]" + code_name + "\n" +
-                "현재가 : " + current_price + "\n" +
-                "등락율 : " + ratio_by_yesterday + "%" + "\n" +
-                "시가 : " + begin_price + "\n" +
-                "고가 : " + high_price + "\n" +
-                "저가 : " + low_price + "\n" +
-                "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
-            )
+            if bool(self.condition_real_result):
+                self.myBot.send_message_to_my_channel(
+                    "[" + code + "]" + code_name + "\n" +
+                    "현재가 : " + current_price + "\n" +
+                    "등락율 : " + ratio_by_yesterday + "%" + "\n" +
+                    "시가 : " + begin_price + "\n" +
+                    "고가 : " + high_price + "\n" +
+                    "저가 : " + low_price + "\n" +
+                    "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
+                )
+            else:
+                self.myBot.send_message_to_my_bot(
+                    "[" + code + "]" + code_name + "\n" +
+                    "현재가 : " + current_price + "\n" +
+                    "등락율 : " + ratio_by_yesterday + "%" + "\n" +
+                    "시가 : " + begin_price + "\n" +
+                    "고가 : " + high_price + "\n" +
+                    "저가 : " + low_price + "\n" +
+                    "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
+                )
 
             self.stop_screen_cancel(self.screen_code_info)
         else:
