@@ -77,7 +77,7 @@ class Main:
                     self.get_code_detail(code)
                 break
             else:
-                self.logging.logger.debug("condition_tr_result 수신 전")
+                # self.logging.logger.debug("condition_tr_result 수신 전")
                 continue
 
         while True:
@@ -132,6 +132,33 @@ class Main:
         )
         self.code_event_loop.exec_()
 
+    def realData_slot(self, sCode, sRealType, sRealData):
+        if sRealType == "주식시세":
+            code = sCode;
+            code_name = self.dynamicCall("GetMasterCodeName(QString)", sCode)
+            current_price = self.get_comm_real_data(sCode, self.realType.REALTYPE[sRealType]['현재가'])
+            ratio_by_yesterday = self.get_comm_real_data(sCode, self.realType.REALTYPE[sRealType]['등락율'])
+            begin_price = self.get_comm_real_data(sCode, self.realType.REALTYPE[sRealType]['시가'])
+            high_price = self.get_comm_real_data(sCode, self.realType.REALTYPE[sRealType]['고가'])
+            low_price = self.get_comm_real_data(sCode, self.realType.REALTYPE[sRealType]['저가'])
+
+            code = code.strip()
+            code_name = code_name.strip()
+            current_price = format(int(str(abs(int(current_price)))), ",")
+            begin_price = format(int(str(abs(int(begin_price)))), ",")
+            high_price = format(int(str(abs(int(high_price)))), ",")
+            low_price = format(int(str(abs(int(low_price)))), ",")
+
+            self.myBot.send_message_to_my_channel(
+                "[" + code + "]" + code_name + "\n" +
+                "현재가 : " + current_price + "\n" +
+                "등락율 : " + ratio_by_yesterday + "%" + "\n" +
+                "시가 : " + begin_price + "\n" +
+                "고가 : " + high_price + "\n" +
+                "저가 : " + low_price + "\n" +
+                "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
+            )
+
     def trdata_slot(self, sScrNo, sRQName, sTrCode, sRecordName, sPrevNext):
         self.logging.logger.debug("trdata_slot")
         if sRQName == "주식기본정보요청":
@@ -148,26 +175,15 @@ class Main:
             high_price = format(int(str(abs(int(high_price)))), ",")
             low_price = format(int(str(abs(int(low_price)))), ",")
 
-            if bool(self.condition_real_result):
-                self.myBot.send_message_to_my_channel(
-                    "[" + code + "]" + code_name + "\n" +
-                    "현재가 : " + current_price + "\n" +
-                    "등락율 : " + ratio_by_yesterday + "%" + "\n" +
-                    "시가 : " + begin_price + "\n" +
-                    "고가 : " + high_price + "\n" +
-                    "저가 : " + low_price + "\n" +
-                    "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
-                )
-            else:
-                self.myBot.send_message_to_my_bot(
-                    "[" + code + "]" + code_name + "\n" +
-                    "현재가 : " + current_price + "\n" +
-                    "등락율 : " + ratio_by_yesterday + "%" + "\n" +
-                    "시가 : " + begin_price + "\n" +
-                    "고가 : " + high_price + "\n" +
-                    "저가 : " + low_price + "\n" +
-                    "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
-                )
+            self.myBot.send_message_to_my_bot(
+                "[" + code + "]" + code_name + "\n" +
+                "현재가 : " + current_price + "\n" +
+                "등락율 : " + ratio_by_yesterday + "%" + "\n" +
+                "시가 : " + begin_price + "\n" +
+                "고가 : " + high_price + "\n" +
+                "저가 : " + low_price + "\n" +
+                "https://kr.tradingview.com/chart/?symbol=KRX%3A" + code
+            )
 
             self.stop_screen_cancel(self.screen_code_info)
         else:
@@ -200,6 +216,38 @@ class Main:
         )
         return ret.strip()
 
+    def get_comm_real_data(self, sCode, sRealType):
+        """
+        GetCommRealData(
+          BSTR strCode,   // 종목코드
+          long nFid   // 실시간 타입에 포함된FID
+          )
+
+          OnReceiveRealData()이벤트가 호출될때 실시간데이터를 얻어오는 함수입니다.
+          이 함수는 반드시 OnReceiveRealData()이벤트가 호출될때 그 안에서 사용해야 합니다.
+
+          ------------------------------------------------------------------------------------------------------------------------------------
+
+          [주식체결 실시간 데이터 예시]
+
+          if(strRealType == _T("주식체결"))
+          {
+            strRealData = m_KOA.GetCommRealData(strCode, 10);   // 현재가
+            strRealData = m_KOA.GetCommRealData(strCode, 13);   // 누적거래량
+            strRealData = m_KOA.GetCommRealData(strCode, 228);    // 체결강도
+            strRealData = m_KOA.GetCommRealData(strCode, 20);  // 체결시간
+          }
+        :param sCode:
+        :param sRealType:
+        :return:
+        """
+        ret = self.ocx.dynamicCall(
+            "GetCommRealData(QString, QString, int, QString)",
+            sCode,
+            sRealType
+        )
+        return ret.strip()
+
     def signal_login_commConnect(self):
         self.ocx.dynamicCall("CommConnect()")  # 로그인 요청 시그널
 
@@ -222,6 +270,7 @@ class Main:
         self.ocx.OnEventConnect.connect(self.login_slot)  # 로그인 관련 이벤트
         self.ocx.OnReceiveMsg.connect(self.msg_slot)
         self.ocx.OnReceiveTrData.connect(self.trdata_slot)  # 트랜잭션 요청 관련 이벤트
+        self.ocx.OnReceiveRealData.connect(self.realData_slot)  # 트랜잭션 요청 관련 이벤트
 
     def stop_screen_cancel(self, sScrNo=None):
         # 스크린번호 연결 끊기
